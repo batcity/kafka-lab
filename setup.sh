@@ -45,15 +45,14 @@ if ! docker compose version &>/dev/null; then
     return 1
 fi
 
-echo "🐳 Bringing up local Kafka cluster (3 brokers + Zookeeper)..."
+echo "🐳 Bringing up local Kafka cluster (3 brokers, KRaft mode)..."
 run_or_exit docker compose up -d
 
 echo ""
-echo "👉 Kafka cluster is running on:"
+echo "👉 Kafka (KRaft mode) cluster is running on:"
 echo "   - Broker 1: localhost:9092"
-echo "   - Broker 2: localhost:9093"
-echo "   - Broker 3: localhost:9094"
-echo "👉 Zookeeper:  localhost:2181"
+echo "   - Broker 2: localhost:9094"
+echo "   - Broker 3: localhost:9096"
 echo ""
 echo "👉 To stop the cluster, run: docker compose down"
 echo "👉 To deactivate the Python environment, run: deactivate"

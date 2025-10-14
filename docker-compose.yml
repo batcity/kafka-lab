@@ -1,48 +1,109 @@
-version: '3.8'
-services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+version: '3.9'
 
+services:
+  # 1. SETUP SERVICE (New)
+  setup:
+    image: apache/kafka:3.9.1
+    container_name: kafka-setup
+    # Use the default command but exit after chowning the volumes
+    command: sh -c '
+      echo "Fixing volume permissions...";
+      chown -R 1000:1000 /kafka/broker1-data /kafka/broker2-data /kafka/broker3-data;
+      echo "Permissions fixed.";
+      '
+    # Mount all volumes that need permissions fixed
+    volumes:
+      - broker1-data:/kafka/broker1-data
+      - broker2-data:/kafka/broker2-data
+      - broker3-data:/kafka/broker3-data
+    user: root
+    
+  # 2. BROKER 1 (Reverting command/user to default)
   broker1:
-    image: confluentinc/cp-kafka:7.5.0
+    image: apache/kafka:3.9.1
+    container_name: broker1
+    # CRITICAL: This line forces broker1 to wait until the setup service is done
     depends_on:
-      - zookeeper
+      - setup 
     ports:
       - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-
-  broker2:
-    image: confluentinc/cp-kafka:7.5.0
-    depends_on:
-      - zookeeper
-    ports:
       - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_BROKER_ID: 1
+      KAFKA_KRAFT_MODE: 'yes'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker1:9093,2@broker2:9095,3@broker3:9097
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092 
+      KAFKA_ADVERTISED_LISTENERS: CONTROLLER://broker1:9093,INTERNAL://broker1:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CLUSTER_ID: 'kraft-cluster'
+    # Revert to default startup behavior (no explicit command/user)
+    # The image's entrypoint will handle KAFKA_PROCESS_ROLES and start in KRaft mode
+    volumes:
+      # Map the volume to /kafka/data as originally intended
+      - broker1-data:/kafka/data
 
-  broker3:
-    image: confluentinc/cp-kafka:7.5.0
+  # 3. BROKER 2 (Reverting command/user to default)
+  broker2:
+    image: apache/kafka:3.9.1
+    container_name: broker2
     depends_on:
-      - zookeeper
+      - setup
     ports:
-      - "9094:9094"
+      - "9094:9094" 
+      - "9095:9095" 
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_KRAFT_MODE: 'yes'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker1:9093,2@broker2:9095,3@broker3:9097
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: CONTROLLER://:9095,INTERNAL://:29092,EXTERNAL://:9094 
+      KAFKA_ADVERTISED_LISTENERS: CONTROLLER://broker2:9095,INTERNAL://broker2:29092,EXTERNAL://localhost:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CLUSTER_ID: 'kraft-cluster'
+    volumes:
+      - broker2-data:/kafka/data
+
+  # 4. BROKER 3 (Reverting command/user to default)
+  broker3:
+    image: apache/kafka:3.9.1
+    container_name: broker3
+    depends_on:
+      - setup
+    ports:
+      - "9096:9096"
+      - "9097:9097"
     environment:
       KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9094
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9094
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_KRAFT_MODE: 'yes'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker1:9093,2@broker2:9095,3@broker3:9097
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: CONTROLLER://:9097,INTERNAL://:29092,EXTERNAL://:9096 
+      KAFKA_ADVERTISED_LISTENERS: CONTROLLER://broker3:9097,INTERNAL://broker3:29092,EXTERNAL://localhost:9096
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CLUSTER_ID: 'kraft-cluster'
+    volumes:
+      - broker3-data:/kafka/data
+
+volumes:
+  broker1-data:
+  broker2-data:
+  broker3-data:
