@@ -35,7 +35,7 @@ for topic, f in fs.items():
         print(f"❌ Failed to create topic '{topic}': {e}")
 
 # topic creation isn't instantaneous, so waiting for a bit here...        
-time.sleep(.2)
+time.sleep(.5)
         
 # List all topics in the cluster
 metadata = admin.list_topics(timeout=10)
