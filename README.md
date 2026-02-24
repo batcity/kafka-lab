@@ -1,6 +1,7 @@
 # Kafka Lab
 
-This repository contains **Apache Kafka features and advanced concepts** for learning Kafka.  
+This repository contains a collection of Kafka implementations and deep-dives, featuring executable code paired with detailed explanations of advanced concepts
+
 Each concept has its own folder with a Python script and README explaining the idea.
 
 ## Table of Contents
@@ -10,6 +11,7 @@ Each concept has its own folder with a Python script and README explaining the i
 - [Consumers](./kafka_core/Consumers/README.md)
 - [Topics](./kafka_core/Topics/README.md)
 - [Partitioning](./kafka_core/Partitioning/README.md)
+- [Broker](./kafka_core/Broker/README.md)
 
 ### Kafka Streams
 - [Basics](./kafka_streams/Basics/README.md)

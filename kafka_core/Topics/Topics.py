@@ -4,7 +4,6 @@ import time
 # Bootstrap servers — list all brokers from your local cluster
 bootstrap_servers = "localhost:9092,localhost:9094,localhost:9096"
 
-# Initialize AdminClient
 admin = AdminClient({
     "bootstrap.servers": bootstrap_servers
 })
@@ -16,7 +15,6 @@ new_topic = NewTopic(
     num_partitions=3,         # how many partitions
     replication_factor=3      # one replica on each broker
 )
-
 
 # Deleting the topic if it exists already
 print("deleting the topic if it exists already...")
